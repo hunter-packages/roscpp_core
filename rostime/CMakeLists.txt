@@ -3,11 +3,13 @@ project(rostime)
 
 find_package(catkin REQUIRED COMPONENTS cpp_common)
 find_package(Boost REQUIRED COMPONENTS date_time system thread)
+
+set(PROJECT_INSTALLSPACE_LIBRARIES ros::${PROJECT_NAME})
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES ${PROJECT_NAME}
   CATKIN_DEPENDS cpp_common
-  DEPENDS Boost
+  DEPENDS "Boost COMPONENTS date_time system thread"
 )
 
 include_directories(include ${catkin_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
@@ -17,12 +19,17 @@ add_library(rostime
   src/rate.cpp
   src/time.cpp)
 
-target_link_libraries(rostime ${Boost_LIBRARIES})
+target_link_libraries(rostime Boost::date_time Boost::system Boost::thread cpp_common)
 if(NOT APPLE)
   target_link_libraries(rostime ${RT_LIBRARY})
 endif()
+target_include_directories(rostime PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
 
 install(TARGETS rostime
+  EXPORT ${PROJECT_NAME}Targets
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION})
@@ -30,6 +37,12 @@ install(TARGETS rostime
 install(DIRECTORY include/
   DESTINATION ${CATKIN_GLOBAL_INCLUDE_DESTINATION}
   FILES_MATCHING PATTERN "*.h")
+
+install(EXPORT ${PROJECT_NAME}Targets
+    DESTINATION share/${PROJECT_NAME}/cmake
+    NAMESPACE ros::
+    FILE ${PROJECT_NAME}Targets.cmake
+)
 
 if(CATKIN_ENABLE_TESTING)
   catkin_add_gtest(${PROJECT_NAME}-test_duration test/duration.cpp)
