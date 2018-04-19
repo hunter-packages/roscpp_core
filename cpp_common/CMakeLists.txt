@@ -1,11 +1,13 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(cpp_common)
 
-find_package(Boost REQUIRED COMPONENTS system thread)
-find_package(console_bridge REQUIRED)
-find_package(catkin REQUIRED)
+find_package(Boost CONFIG REQUIRED COMPONENTS system thread)
+find_package(console_bridge CONFIG REQUIRED)
+find_package(catkin CONFIG REQUIRED)
+
+set(PROJECT_INSTALLSPACE_LIBRARIES ros::${PROJECT_NAME})
 catkin_package(
-  DEPENDS Boost console_bridge
+  DEPENDS "Boost COMPONENTS system thread" console_bridge
   INCLUDE_DIRS include
   LIBRARIES ${PROJECT_NAME})
 
@@ -32,9 +34,14 @@ if(HAVE_GLIBC_BACKTRACE)
 endif(HAVE_GLIBC_BACKTRACE)
 
 add_library(${PROJECT_NAME} src/debug.cpp src/header.cpp)
-target_link_libraries(${PROJECT_NAME} ${Boost_LIBRARIES} ${console_bridge_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} Boost::boost Boost::system Boost::thread ros::console_bridge)
+target_include_directories(${PROJECT_NAME} PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
 
 install(TARGETS ${PROJECT_NAME}
+  EXPORT ${PROJECT_NAME}Targets
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION})
@@ -42,3 +49,9 @@ install(TARGETS ${PROJECT_NAME}
 install(DIRECTORY include/
   DESTINATION ${CATKIN_GLOBAL_INCLUDE_DESTINATION}
   FILES_MATCHING PATTERN "*.h")
+
+install(EXPORT ${PROJECT_NAME}Targets
+    DESTINATION share/${PROJECT_NAME}/cmake
+    NAMESPACE ros::
+    FILE ${PROJECT_NAME}Targets.cmake
+)
